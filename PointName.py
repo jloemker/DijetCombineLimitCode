@@ -1,8 +1,8 @@
 import collections,csv
 
 sets=collections.OrderedDict()
-/nfs/dust/cms/user/albrechs/VBS_aQGC/Analysis/aQGC_python/range_short_positive.csv
-with open('/afs/desy.de/user/a/albrechs/aQGCVVjj/python/ReweightingRanges/VVRange.csv','rb') as csvfile:
+
+with open('/nfs/dust/cms/user/albrechs/VBS_aQGC/Analysis/aQGC_python/range_short_positive.csv','r') as csvfile:
     setreader=csv.DictReader(csvfile)
     for row in setreader:
         sets.update({row['parameter']:[

@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 import os,glob,sys
-sys.path.append('/afs/desy.de/user/a/albrechs/aQGCVVjj/python')
-import PointName as PN 
-from backup import backup_point
 
 if (__name__=='__main__'):
     mode=sys.argv[1]
@@ -15,8 +12,11 @@ if (__name__=='__main__'):
     signal=sys.argv[2]
     parameter=signal[-2:]
     print signal, coupling , steps
-            
-    name=signal+"_"+coupling 
+
+    variable = sys.argv[4] if len(sys.argv)>4 else ""
+    name=signal+"_"+coupling+variable
+    print('name:',name)
+    # exit(0)
     if 1 in steps:
         os.system('root -b -q "MiniTreeProducerDataUHH_cut.C(\\"\\",\\"\\",\\"'+str(name)+'\\")"')
         os.system('root -b -q "MiniTreeSignalProducerUHH_cuts.C(10,11,0,\\"'+str(name)+'\\")"')
@@ -28,7 +28,5 @@ if (__name__=='__main__'):
     #run combine
     if 3 in steps:
         os.system('python Limits/CalcAsympLimitsUHH_cuts.py 0 '+str(name))
-        backup_point(signal,coupling,'fit')
     if 4 in steps:
-        os.system('python Limits/brazilianFlag_aQTGC.py '+str(signal))
-        backup_point(signal,coupling,'plot')    
+        os.system('python Limits/brazilianFlag_aQTGC.py '+str(signal)+' '+variable)

@@ -17,7 +17,7 @@ def testFileForLimits(filename):
     else:
         return True
 
-def submit(channels,parameters):
+def submit(channels,parameters,variables):
     for channel in channels:
         for parameter in parameters:
             signal=channel+'_'+parameter
@@ -26,29 +26,30 @@ def submit(channels,parameters):
             queue_str=''
             for coupling in couplings:
                 queue_str+=signal+' '+coupling+'\n'
-                # queue_str+=signal+' '+coupling+'_SignalInjection\n'
+                    # queue_str+=signal+' '+coupling+'_SignalInjection\n'
             queue_str+=')'
-            submitfile=open(signal+'.submit','w')
-            submitfile.write(
-                """executable          = submitwrapper.sh
+            for variable in variables:
+                submitfile=open(signal+variable+'.submit','w')
+                submitfile.write(
+                    """executable          = submitwrapper.sh
 transfer_executable = False
 universe            = vanilla
-requirements            = (OpSysAndVer == "SL6" || OpSysAndVer == "CentOS7")
+requirements            = (OpSysAndVer == "CentOS7")
 error="""+signal+"""_$(var2)_$(ClusterId).$(Process).error
 output="""+signal+"""_$(var2)_$(ClusterId).$(Process).out
 log="""+signal+""".log
-Args=fit $(var1) $(var2)
+Args=fit $(var1) $(var2) """+variable+"""
 queue var1,var2 from (
 """)
-            submitfile.write(queue_str)
-            submitfile.close()
-            submit_command='condor_submit '+signal+'.submit -batch-name '+signal
-            if('-d' in args):
-                submit_command+=' -dry-run submit_dryrun.log'
-            print(submit_command)
-            os.system(submit_command)
+                submitfile.write(queue_str)
+                submitfile.close()
+                submit_command='condor_submit '+signal+variable+'.submit -batch-name '+signal
+                if('-d' in args):
+                    submit_command+=' -dry-run submit_dryrun.log'
+                print(submit_command)
+                os.system(submit_command)
 
-def resubmit(channels, parameters):
+def resubmit(channels, parameters,variables):
     postfix = "Limits/"
 
     # regions=["_invMass","_invMass_afterVBFsel","_invMass_combined"]
@@ -62,63 +63,65 @@ def resubmit(channels, parameters):
             failed_couplings=[]
             success_couplings=[]
             queue_str=''
-            for i in range(len(couplings)):
-                coupling=couplings[i]
-                if(testFileForLimits(postfix+"CMS_jj_0_"+chan+'_'+parameter+"_"+str(coupling)+"_13TeV_"+region+"_asymptoticCLs_new.root")):
-                    success.append(postfix+"CMS_jj_0_"+chan+'_'+parameter+"_"+str(coupling)+"_13TeV_"+region+"_asymptoticCLs_new.root")
-                    success_couplings.append(coupling)
-                else:
-                    failed.append(postfix+"CMS_jj_0_"+chan+'_'+parameter+"_"+str(coupling)+"_13TeV_"+region+"_asymptoticCLs_new.root")
-                    failed_couplings.append(coupling)
-                    queue_str+=signal+' '+coupling+'\n'
-            queue_str+=')'
+            for variable in variables:
+                for i in range(len(couplings)):
+                    coupling=couplings[i]
+                    if(testFileForLimits(postfix+"CMS_jj_0_"+chan+'_'+parameter+"_"+str(coupling)+variable+"_13TeV_"+region+"_asymptoticCLs_new.root")):
+                        success.append(postfix+"CMS_jj_0_"+chan+'_'+parameter+"_"+str(coupling)+variable+"_13TeV_"+region+"_asymptoticCLs_new.root")
+                        success_couplings.append(coupling)
+                    else:
+                        failed.append(postfix+"CMS_jj_0_"+chan+'_'+parameter+"_"+str(coupling)+variable+"_13TeV_"+region+"_asymptoticCLs_new.root")
+                        failed_couplings.append(coupling)
+                        queue_str+=signal+' '+coupling+'\n'
+                queue_str+=')'
 
-            resubmitfile=open(signal+'.resubmit','w')
-            resubmitfile.write(
-                """executable          = submitwrapper.sh
+                resubmitfile=open(signal+variable+'.resubmit','w')
+                resubmitfile.write(
+                        """executable          = submitwrapper.sh
 transfer_executable = False
 universe            = vanilla
-requirements            = (OpSysAndVer == "SL6" || OpSysAndVer == "CentOS7")
+requirements            = (OpSysAndVer == "CentOS7")
 error="""+signal+"""_$(var2)_resub_$(ClusterId).$(Process).error
 output="""+signal+"""_$(var2)_resub_$(ClusterId).$(Process).out
 log="""+signal+"""_resub.log
-Args=fit $(var1) $(var2)
+Args=fit $(var1) $(var2) """+variable+"""
 queue var1,var2 from (
 """)
-            resubmitfile.write(queue_str)
-            resubmitfile.close()
-            resubmit_command='condor_submit '+signal+'.resubmit -batch-name '+signal+'_resub'
-            if('-d' in args):
-                resubmit_command+=' -dry-run resubmit_dryrun.log'
-            print(resubmit_command)
-            os.system(resubmit_command)
+                resubmitfile.write(queue_str)
+                resubmitfile.close()
+                resubmit_command='condor_submit '+signal+variable+'.resubmit -batch-name '+signal+'_resub'
+                if('-d' in args):
+                    resubmit_command+=' -dry-run resubmit_dryrun.log'
+                print(resubmit_command)
+                os.system(resubmit_command)
             
-def submitPlots(channels,parameters):
+def submitPlots(channels,parameters,variables):
     for channel in channels:
-        queue_str=''
-        for parameter in parameters:
-            signal=channel+'_'+parameter
-            queue_str+=signal+'\n'
-        queue_str+=')'
-        submitfile=open(channel+'.submit','w')
-        submitfile.write(
+        for variable in variables:
+            queue_str=''
+            for parameter in parameters:
+                signal=channel+'_'+parameter
+                queue_str+=signal+'\n'
+            queue_str+=')'
+            submitfile=open(channel+variable+'.submit','w')
+            submitfile.write(
             """executable          = submitwrapper.sh
 transfer_executable = False
 universe            = vanilla
-requirements            = (OpSysAndVer == "SL6" || OpSysAndVer == "CentOS7")
+requirements            = (OpSysAndVer == "CentOS7")
 error=$(var1)_$(ClusterId).$(Process).error
 output=$(var1)_$(ClusterId).$(Process).out
 log="""+channel+""".log
-Args=plot $(var1)
+Args=plot $(var1) NoPoint """+variable+"""
 queue var1 from (
 """)
-        submitfile.write(queue_str)
-        submitfile.close()
-        submit_command='condor_submit '+channel+'.submit -batch-name '+channel+'_LastStep'
-        if('-d' in args):
-            submit_command+=' -dry-run resubmit_dryrun.log'
-        print(submit_command)
-        os.system(submit_command)
+            submitfile.write(queue_str)
+            submitfile.close()
+            submit_command='condor_submit '+channel+variable+'.submit -batch-name '+channel+'_LastStep'
+            if('-d' in args):
+                submit_command+=' -dry-run resubmit_dryrun.log'
+            print(submit_command)
+            os.system(submit_command)
 
 def local(channels,parameters,coupling=''):
     for channel in channels:
@@ -134,14 +137,15 @@ def local(channels,parameters,coupling=''):
 if (__name__=='__main__'):
     channels=['ZZ']
     parameters=["S0","S1","S2","M0","M1","M2","M3","M4","M5","M7","T0","T1","T2","T5","T6","T7","T8","T9"]
+    variables=['_mjj','_pT']
     args=sys.argv[1:]
     if('-s' in args):
         print('submit')
-        submit(channels,parameters)
+        submit(channels,parameters,variables)
     elif('-r' in args):
         print('resubmit')
-        resubmit(channels,parameters)
+        resubmit(channels,parameters,variables)
     elif('-p' in args):
-        submitPlots(channels,parameters)
+        submitPlots(channels,parameters,variables)
     else:
         print('nothing')

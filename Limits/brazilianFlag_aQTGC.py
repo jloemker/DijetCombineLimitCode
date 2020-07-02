@@ -7,10 +7,10 @@ import glob
 import math
 import array
 import sys
-sys.path.append('/nfs/dust/cms/user/zoiirene/CombineTutorial/CMSSW_8_1_0/src/DijetCombineLimitCode/Limits')
-import CMS_lumi
+# sys.path.append('/nfs/dust/cms/user/zoiirene/CombineTutorial/CMSSW_8_1_0/src/DijetCombineLimitCode/Limits')
+# import CMS_lumi
                                                                                         
-sys.path.append('/afs/desy.de/user/a/albrechs/aQGCVVjj/python')           
+sys.path.append(os.path.join(os.environ['CMSSW_BASE'],'src/DijetCombineLimitCode'))
 import PointName as PN
 import TGraphTools as TGT
 import csv
@@ -20,14 +20,14 @@ import numpy as np
 
 from optparse import OptionParser
 
-CMS_lumi.lumi_13TeV = "35.9 fb^{-1}"
-CMS_lumi.writeExtraText = 1
-CMS_lumi.extraText = ""
-CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
-CMS_lumi.cmsText=""
-iPos = 11
-if( iPos==0 ): CMS_lumi.relPosX = 0.12
-iPeriod=4  
+# CMS_lumi.lumi_13TeV = "35.9 fb^{-1}"
+# CMS_lumi.writeExtraText = 1
+# CMS_lumi.extraText = ""
+# CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
+# CMS_lumi.cmsText=""
+# iPos = 11
+# if( iPos==0 ): CMS_lumi.relPosX = 0.12
+# iPeriod=4  
 
 
 def extractLimit(grmean,gr1up,gr1down,gtheory,label,obs=False):
@@ -83,7 +83,7 @@ def extractLimit(grmean,gr1up,gr1down,gtheory,label,obs=False):
     return [inter_mean,inter_1up,inter_1down]
 
 
-def Plot(files, label, obs,CompareLimits=False,plotExpLimitRatio=""):    
+def Plot(files, label, obs,CompareLimits=False,plotExpLimitRatio=""):
     radmasses = []
     for f in files:
       if not postfix:
@@ -480,7 +480,7 @@ def Plot(files, label, obs,CompareLimits=False,plotExpLimitRatio=""):
     c1.Update() 
     frame = c1.GetFrame()
     frame.Draw()
-    CMS_lumi.CMS_lumi(c1, iPeriod, iPos)
+    # CMS_lumi.CMS_lumi(c1, iPeriod, iPos)
     c1.cd()
     c1.Update()
     c1.RedrawAxis()
@@ -631,10 +631,12 @@ if __name__ == '__main__':
     gROOT.SetBatch(True)
 
     chan=sys.argv[1]
+    variable=sys.argv[2] if len(sys.argv)>2 else ""
+    parameter=chan.split('_')[1]
+    print('chan:',chan)
+    print('praramter:',parameter)
+    print('variable:',variable)
     # regions=["_invMass","_invMass_afterVBFsel","_invMass_combined"]
-
-    FromBackup=False
-    backup_path = '/nfs/dust/cms/user/albrechs/CMSSW_8_1_0/src/DijetCombineLimitCode/HTC/plot/'+chan.split('_')[0]+'/'+chan.split('_')[1]+'_current/'
     
     regions=["_invMass_combined"]
     
@@ -642,65 +644,15 @@ if __name__ == '__main__':
     plotExpLimitRatio = ""  
 
     for region in regions:
-        # if chan=="WPZ_T0":
-      
-        # couplings=["1p08"]#,
-        # "2p04",
-        # "3p00",
-        #  ]
-        # parameter=chan[-2:]
-        parameter=chan.split('_')[1]
-
-        # couplings_test=PN.OpList(parameter)
-        # N_test=len(couplings_test)
-        # failed_in_lh=N_test/2
-        # # notfailed_in_lh=N_test/2
-        # print 'N_test',N_test
-        # for i in reversed(range((N_test)/2)):
-        #     print 'checking:'
-        #     print 'i:',i
-        #     print postfix+"CMS_jj_0_"+chan+"_"+str(couplings_test[i])+"_13TeV_"+region+"_asymptoticCLs_new.root"
-        #     failed=not testFileForLimits(postfix+"CMS_jj_0_"+chan+"_"+str(couplings_test[i])+"_13TeV_"+region+"_asymptoticCLs_new.root")
-        #     if(failed):
-        #         failed_in_lh=i+1
-        #         break
-        # failed_in_uh=N_test/2
-        # for i in range(N_test/2,N_test):
-        #     print 'checking:'
-        #     print 'i:',i
-        #     print postfix+"CMS_jj_0_"+chan+"_"+str(couplings_test[i])+"_13TeV_"+region+"_asymptoticCLs_new.root"
-        #     failed=not testFileForLimits(postfix+"CMS_jj_0_"+chan+"_"+str(couplings_test[i])+"_13TeV_"+region+"_asymptoticCLs_new.root")
-        #     if(failed):
-        #         #i-1+1 the +1 needs to be there, because the couplingslist does not contain parameter=0 which should have the index=N_test/2 
-        #         failed_in_uh=i-1+1
-        #         break
-        # print 'first failure in lh:',failed_in_lh,' - in uh:',failed_in_uh
-      
-        # print 'choosing which side has less working points:'
-        # print 'lh:', (N_test/2)-failed_in_lh
-        # print 'uh:', (failed_in_uh)-(N_test/2)
-        # N=2*min( (N_test/2)-failed_in_lh , (failed_in_uh)-(N_test/2) )
-        # print 'using the points [-N,...,(N_reweight-1)/2,...,N] for the plot. with N=',N
-        # couplings=PN.OpList(parameter,N)
-
         couplings=PN.OpList(parameter)
         combinedplots=[]    
-        # if(N==0):
-        #     print 'The innermost parameters failed!!! Exiting...'
-        #     gSystem.ProcessEvents()
-        #     # sys.exit(0) 
-        #     continue
         failed=[]
         for coupling in couplings:
-            if(FromBackup):
-                os.system('cp '+backup_path+"CMS_jj_0_"+chan+"_"+str(coupling)+"_13TeV_"+region+"_asymptoticCLs_new.root "+postfix+"CMS_jj_0_"+chan+"_"+str(coupling)+"_13TeV_"+region+"_asymptoticCLs_new.root")
-            # for coup in couplings:
-            # coupling=coup+'_SignalInjection'
-            if(testFileForLimits(postfix+"CMS_jj_0_"+chan+"_"+str(coupling)+"_13TeV_"+region+"_asymptoticCLs_new.root")):
-               combinedplots+=[postfix+"CMS_jj_0_"+chan+"_"+str(coupling)+"_13TeV_"+region+"_asymptoticCLs_new.root"]
+            if(testFileForLimits(postfix+"CMS_jj_0_"+chan+"_"+str(coupling)+variable+"_13TeV_"+region+"_asymptoticCLs_new.root")):
+               combinedplots+=[postfix+"CMS_jj_0_"+chan+"_"+str(coupling)+variable+"_13TeV_"+region+"_asymptoticCLs_new.root"]
             else:
                print 'skipping', coupling
-               failed.append(postfix+"CMS_jj_0_"+chan+"_"+str(coupling)+"_13TeV_"+region+"_asymptoticCLs_new.root")
+               failed.append(postfix+"CMS_jj_0_"+chan+"_"+str(coupling)+variable+"_13TeV_"+region+"_asymptoticCLs_new.root")
         print '('+str(len(failed))+'/'+str(len(couplings))+') failed!!'
         if region == "_invMass":
             Plot(combinedplots,chan+"_"+region+"_new_combined", obs=False,CompareLimits=False,plotExpLimitRatio="")  
@@ -709,6 +661,4 @@ if __name__ == '__main__':
             Plot(combinedplots,chan+"_"+region+"_new_combined", obs=True,CompareLimits=False,plotExpLimitRatio="")  
             gSystem.ProcessEvents()
         print 'Failed (N=%i):'%len(failed)
-        for i in range(len(failed)):
-            print 'll'
             
