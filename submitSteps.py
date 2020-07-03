@@ -12,7 +12,7 @@ if (__name__=='__main__'):
     signal=sys.argv[2]
     parameter=signal[-2:]
     print signal, coupling , steps
-
+    
     variable = sys.argv[4] if len(sys.argv)>4 else ""
     name=signal+"_"+coupling+variable
     print('name:',name)

@@ -29,7 +29,8 @@ def submit(channels,parameters,variables):
                     # queue_str+=signal+' '+coupling+'_SignalInjection\n'
             queue_str+=')'
             for variable in variables:
-                submitfile=open(signal+variable+'.submit','w')
+                submitfile=open(signal+variable+'.submit','w')#signal+coupling+variable?
+                #->submitwrapper.sh->submitSteps.py
                 submitfile.write(
                     """executable          = submitwrapper.sh
 transfer_executable = False
@@ -42,7 +43,7 @@ Args=fit $(var1) $(var2) """+variable+"""
 queue var1,var2 from (
 """)
                 submitfile.write(queue_str)
-                submitfile.close()
+                submitfile.close()#why condor_?
                 submit_command='condor_submit '+signal+variable+'.submit -batch-name '+signal
                 if('-d' in args):
                     submit_command+=' -dry-run submit_dryrun.log'
@@ -52,7 +53,7 @@ queue var1,var2 from (
 def resubmit(channels, parameters,variables):
     postfix = "Limits/"
 
-    # regions=["_invMass","_invMass_afterVBFsel","_invMass_combined"]
+    # regions=["_invMass","_invMass_afterVBFsel","_invMass_combined"] classiefied by failed and passed couplings
     region="_invMass_combined"
     for chan in channels:
         for parameter in parameters:
