@@ -7,8 +7,8 @@ import glob
 import math
 import array
 import sys
-# sys.path.append('/nfs/dust/cms/user/zoiirene/CombineTutorial/CMSSW_8_1_0/src/DijetCombineLimitCode/Limits')
-# import CMS_lumi
+sys.path.append(os.path.join(os.environ['CMSSW_BASE'],'src/DijetCombineLimitCode/Limits'))
+import CMS_lumi
                                                                                         
 sys.path.append(os.path.join(os.environ['CMSSW_BASE'],'src/DijetCombineLimitCode'))
 import PointName as PN
@@ -20,14 +20,14 @@ import numpy as np
 
 from optparse import OptionParser
 
-# CMS_lumi.lumi_13TeV = "35.9 fb^{-1}"
-# CMS_lumi.writeExtraText = 1
-# CMS_lumi.extraText = ""
-# CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
-# CMS_lumi.cmsText=""
-# iPos = 11
-# if( iPos==0 ): CMS_lumi.relPosX = 0.12
-# iPeriod=4  
+CMS_lumi.lumi_13TeV = "35.9 fb^{-1}"
+CMS_lumi.writeExtraText = 1
+CMS_lumi.extraText = "Simulation"
+CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
+CMS_lumi.cmsText="CMS"
+iPos = 0
+if( iPos==0 ): CMS_lumi.relPosX = 0.12
+iPeriod=4  
 
 
 def extractLimit(grmean,gr1up,gr1down,gtheory,label,obs=False):
@@ -61,19 +61,19 @@ def extractLimit(grmean,gr1up,gr1down,gtheory,label,obs=False):
         expObs='expected'
         
     csvfile=open('Limits/%s_%s_limits.csv'%(label,expObs),'wt')
-    csvwriter=csv.DictWriter(csvfile,fieldnames=['parameter','lmean','l1down','l1up','umean','u1down','u1up'])
+    csvwriter=csv.DictWriter(csvfile,fieldnames=['parameter','lmean','l1down','l1up'])#,'umean','u1down','u1up'])
     csvwriter.writeheader()
     csvwriter.writerow({'parameter':label.split('_')[1],
                         'lmean':inter_mean[0][0],
                         'l1down':inter_1down[0][0],
                         'l1up':inter_1up[0][0],
-                        # 'l1down':inter_1down[0][0]-inter_mean[0][0],
-                        # 'l1up':inter_1up[0][0]-inter_mean[0][0],
-                        'umean':inter_mean[1][0],
-                        'u1down':inter_1down[1][0],
-                        'u1up':inter_1up[1][0]
-                        # 'u1down':inter_1down[1][0]-inter_mean[1][0],
-                        # 'u1up':inter_1up[1][0]-inter_mean[1][0]
+                        # # 'l1down':inter_1down[0][0]-inter_mean[0][0],
+                        # # 'l1up':inter_1up[0][0]-inter_mean[0][0],
+                        # 'umean':inter_mean[1][0],
+                        # 'u1down':inter_1down[1][0],
+                        # 'u1up':inter_1up[1][0]
+                        # # 'u1down':inter_1down[1][0]-inter_mean[1][0],
+                        # # 'u1up':inter_1up[1][0]-inter_mean[1][0]
                         })
     csvfile.close()
     print 'mean:',inter_mean
@@ -135,7 +135,10 @@ def Plot(files, label, obs,CompareLimits=False,plotExpLimitRatio=""):
         y1down.append(rad[i][3]*efficiencies[radmasses[i]])
         y2down.append(rad[i][4]*efficiencies[radmasses[i]])
         yobs.append(rad[i][5]*efficiencies[radmasses[i]])
-     
+
+    exp_limit_possible = not(all(np.array(ymean)>1) or all(np.array(ymean)<1))
+    obs_limit_possible = not(all(np.array(yobs)>1) or all(np.array(yobs)<1))
+    
     grobs = rt.TGraphErrors(1)
     grobs.SetMarkerStyle(8)
     grobs.SetMarkerSize(0.8)
@@ -210,8 +213,12 @@ def Plot(files, label, obs,CompareLimits=False,plotExpLimitRatio=""):
     frame.GetYaxis().SetTitleOffset(1.15)
     frame.GetXaxis().SetTitleOffset(1.05)
     #frame.GetXaxis().CenterTitle()
-    frame.SetMinimum(0.01)
-    frame.SetMaximum(100)
+
+    extreme_yvalues = np.array(y2up+y2down+yobs)
+    
+    frame.SetMinimum(0.9*min(extreme_yvalues))
+    frame.SetMaximum(1.1*max(extreme_yvalues))
+    
     frame.GetXaxis().SetNdivisions(508)
     #frame.GetYaxis().CenterTitle(True)
     
@@ -285,37 +292,37 @@ def Plot(files, label, obs,CompareLimits=False,plotExpLimitRatio=""):
     # frame.GetXaxis().SetRangeUser()
     frame.GetXaxis().SetRangeUser(inter_mean[0][0]*2.,inter_mean[1][0]*2.)
 
-    
-    #lower limit:
-    l1down=TGraph()
-    l1down.SetPoint(0,inter_1down[0][0],0)
-    l1down.SetPoint(1,inter_1down[0][0],1)
-    l1down.SetLineStyle(2)
-    l1down.SetLineColor(1)
-    l1down.SetMarkerStyle(26)
-    l1down.SetMarkerSize(1.5)
-    l1down.Draw("LPSAME")
-
-    l1up=TGraph()
-    l1up.SetPoint(0,inter_1up[0][0],0)
-    l1up.SetPoint(1,inter_1up[0][0],1)
-    l1up.SetLineStyle(2)
-    l1up.SetLineColor(1)
-    l1up.SetMarkerStyle(26)
-    l1up.SetMarkerSize(1.5)
-    l1up.Draw("LPSAME")
-
-    lmean=TGraph()
-    lmean.SetPoint(0,inter_mean[0][0],0)
-    lmean.SetPoint(1,inter_mean[0][0],1)
-    lmean.SetLineStyle(1)
-    lmean.SetLineColor(1)
-    lmean.SetMarkerStyle(22)
-    lmean.SetMarkerColor(1)
-    lmean.SetMarkerSize(1.5)
-    lmean.Draw("LPSAME")
-
-    if(obs):
+    if(exp_limit_possible):
+        #lower limit:
+        l1down=TGraph()
+        l1down.SetPoint(0,inter_1down[0][0],0)
+        l1down.SetPoint(1,inter_1down[0][0],1)
+        l1down.SetLineStyle(2)
+        l1down.SetLineColor(1)
+        l1down.SetMarkerStyle(26)
+        l1down.SetMarkerSize(1.5)
+        l1down.Draw("LPSAME")
+        
+        l1up=TGraph()
+        l1up.SetPoint(0,inter_1up[0][0],0)
+        l1up.SetPoint(1,inter_1up[0][0],1)
+        l1up.SetLineStyle(2)
+        l1up.SetLineColor(1)
+        l1up.SetMarkerStyle(26)
+        l1up.SetMarkerSize(1.5)
+        l1up.Draw("LPSAME")
+        
+        lmean=TGraph()
+        lmean.SetPoint(0,inter_mean[0][0],0)
+        lmean.SetPoint(1,inter_mean[0][0],1)
+        lmean.SetLineStyle(1)
+        lmean.SetLineColor(1)
+        lmean.SetMarkerStyle(22)
+        lmean.SetMarkerColor(1)
+        lmean.SetMarkerSize(1.5)
+        lmean.Draw("LPSAME")
+        
+    if(obs and obs_limit_possible):
         lmean_obs=TGraph()
         lmean_obs.SetPoint(0,inter_mean_obs[0][0],0)
         lmean_obs.SetPoint(1,inter_mean_obs[0][0],1)
@@ -327,46 +334,46 @@ def Plot(files, label, obs,CompareLimits=False,plotExpLimitRatio=""):
         lmean_obs.SetMarkerSize(1.5)
         lmean_obs.Draw("LPSAME")
     
-    #upper limit:
-    u1down=TGraph()
-    u1down.SetPoint(0,inter_1down[1][0],0)
-    u1down.SetPoint(1,inter_1down[1][0],1)
-    u1down.SetLineStyle(2)
-    u1down.SetLineColor(1)
-    u1down.SetMarkerStyle(26)
-    u1down.SetMarkerSize(1.5)
-    u1down.Draw("LPSAME")
+    # #upper limit:
+    # u1down=TGraph()
+    # u1down.SetPoint(0,inter_1down[1][0],0)
+    # u1down.SetPoint(1,inter_1down[1][0],1)
+    # u1down.SetLineStyle(2)
+    # u1down.SetLineColor(1)
+    # u1down.SetMarkerStyle(26)
+    # u1down.SetMarkerSize(1.5)
+    # u1down.Draw("LPSAME")
 
-    u1up=TGraph()
-    u1up.SetPoint(0,inter_1up[1][0],0)
-    u1up.SetPoint(1,inter_1up[1][0],1)
-    u1up.SetLineStyle(2)
-    u1up.SetLineColor(1)
-    u1up.SetMarkerStyle(26)
-    u1up.SetMarkerSize(1.5)
-    u1up.Draw("LPSAME")
+    # u1up=TGraph()
+    # u1up.SetPoint(0,inter_1up[1][0],0)
+    # u1up.SetPoint(1,inter_1up[1][0],1)
+    # u1up.SetLineStyle(2)
+    # u1up.SetLineColor(1)
+    # u1up.SetMarkerStyle(26)
+    # u1up.SetMarkerSize(1.5)
+    # u1up.Draw("LPSAME")
 
-    umean=TGraph()
-    umean.SetPoint(0,inter_mean[1][0],0)
-    umean.SetPoint(1,inter_mean[1][0],1)
-    umean.SetLineStyle(1)
-    umean.SetLineColor(1)
-    umean.SetMarkerStyle(22)
-    umean.SetMarkerColor(1)
-    umean.SetMarkerSize(1.5)
-    umean.Draw("LPSAME")
+    # umean=TGraph()
+    # umean.SetPoint(0,inter_mean[1][0],0)
+    # umean.SetPoint(1,inter_mean[1][0],1)
+    # umean.SetLineStyle(1)
+    # umean.SetLineColor(1)
+    # umean.SetMarkerStyle(22)
+    # umean.SetMarkerColor(1)
+    # umean.SetMarkerSize(1.5)
+    # umean.Draw("LPSAME")
 
-    if(obs):
-        umean_obs=TGraph()
-        umean_obs.SetPoint(0,inter_mean_obs[1][0],0)
-        umean_obs.SetPoint(1,inter_mean_obs[1][0],1)
-        umean_obs.SetLineStyle(3)
-        umean_obs.SetLineWidth(2)
-        umean_obs.SetLineColor(12)
-        umean_obs.SetMarkerStyle(23)
-        umean_obs.SetMarkerColor(12)
-        umean_obs.SetMarkerSize(1.5)
-        umean_obs.Draw("LPSAME")
+    # if(obs):
+    #     umean_obs=TGraph()
+    #     umean_obs.SetPoint(0,inter_mean_obs[1][0],0)
+    #     umean_obs.SetPoint(1,inter_mean_obs[1][0],1)
+    #     umean_obs.SetLineStyle(3)
+    #     umean_obs.SetLineWidth(2)
+    #     umean_obs.SetLineColor(12)
+    #     umean_obs.SetMarkerStyle(23)
+    #     umean_obs.SetMarkerColor(12)
+    #     umean_obs.SetMarkerSize(1.5)
+    #     umean_obs.Draw("LPSAME")
 
    
     print "max cross section (observed limit ) : " +str(round(rt.TMath.MaxElement(n,grobs.GetY()),5))+ " pb" 
@@ -438,49 +445,54 @@ def Plot(files, label, obs,CompareLimits=False,plotExpLimitRatio=""):
     addNarrow.SetTextSize(0.035)
     addNarrow.SetTextAlign(12)
     addNarrow.AddText("narrow width approximation")
-  
-    # addInfo.AddText("Pruned mass sideband")
-    if(label.find("HP")!=-1):
-      if(label.find("_WW")!=-1):addInfo.AddText("WW enriched")
-      elif(label.find("_WZ")!=-1):addInfo.AddText("WZ enriched")
-      elif(label.find("_ZZ")!=-1):addInfo.AddText("ZZ enriched")
-      elif(label.find("_VV_new")!=-1):addInfo.AddText("WW+WZ+ZZ")
-      elif(label.find("_VVHP_new")!=-1):addInfo.AddText("WW+WZ+ZZ")
-      elif(label.find("_VV_old")!=-1):addInfo.AddText("VV category")
-      elif(label.find("_qW")!=-1):addInfo.AddText("qW enriched")
-      elif(label.find("_qZ")!=-1):addInfo.AddText("qZ enriched")
-      elif(label.find("_qV")!=-1):addInfo.AddText("qW+qZ")
-      addInfo.AddText("High-purity")
-    elif(label.find("LP")!=-1):
-      if(label.find("_WW")!=-1):addInfo.AddText("WW enriched")
-      elif(label.find("_WZ")!=-1):addInfo.AddText("WZ enriched")
-      elif(label.find("_ZZ")!=-1):addInfo.AddText("ZZ enriched")
-      elif(label.find("_VV_new")!=-1):addInfo.AddText("WW+WZ+ZZ")
-      elif(label.find("_VVLP_new")!=-1):addInfo.AddText("WW+WZ+ZZ")
-      elif(label.find("_VV_old")!=-1):addInfo.AddText("VV category")
+
+    if(label.find("_mjj") != -1):
+        addInfo.AddText("M_{jj,AK8} fit")
+    if(label.find("_pT") != -1):
+        addInfo.AddText("p_{T,two leading AK8 jets} fit")
+
+    # # addInfo.AddText("Pruned mass sideband")
+    # if(label.find("HP")!=-1):
+    #   if(label.find("_WW")!=-1):addInfo.AddText("WW enriched")
+    #   elif(label.find("_WZ")!=-1):addInfo.AddText("WZ enriched")
+    #   elif(label.find("_ZZ")!=-1):addInfo.AddText("ZZ enriched")
+    #   elif(label.find("_VV_new")!=-1):addInfo.AddText("WW+WZ+ZZ")
+    #   elif(label.find("_VVHP_new")!=-1):addInfo.AddText("WW+WZ+ZZ")
+    #   elif(label.find("_VV_old")!=-1):addInfo.AddText("VV category")
+    #   elif(label.find("_qW")!=-1):addInfo.AddText("qW enriched")
+    #   elif(label.find("_qZ")!=-1):addInfo.AddText("qZ enriched")
+    #   elif(label.find("_qV")!=-1):addInfo.AddText("qW+qZ")
+    #   addInfo.AddText("High-purity")
+    # elif(label.find("LP")!=-1):
+    #   if(label.find("_WW")!=-1):addInfo.AddText("WW enriched")
+    #   elif(label.find("_WZ")!=-1):addInfo.AddText("WZ enriched")
+    #   elif(label.find("_ZZ")!=-1):addInfo.AddText("ZZ enriched")
+    #   elif(label.find("_VV_new")!=-1):addInfo.AddText("WW+WZ+ZZ")
+    #   elif(label.find("_VVLP_new")!=-1):addInfo.AddText("WW+WZ+ZZ")
+    #   elif(label.find("_VV_old")!=-1):addInfo.AddText("VV category")
       
-      elif(label.find("_qW")!=-1):addInfo.AddText("qW enriched")
-      elif(label.find("_qZ")!=-1):addInfo.AddText("qZ enriched")
-      elif(label.find("_qV")!=-1):addInfo.AddText("qW+qZ")
-      addInfo.AddText("Low-purity")
-    else:
-      if label.find("old")!=-1:
-        addInfo.AddText("VV category")
-        addInfo.AddText("HP+LP")
-      elif (label.find("new")!=-1) and label.find("qW")!=-1 or label.find("qZ")!=-1:
-        addInfo.AddText("qW+qZ")
-        addInfo.AddText("HP+LP")
+    #   elif(label.find("_qW")!=-1):addInfo.AddText("qW enriched")
+    #   elif(label.find("_qZ")!=-1):addInfo.AddText("qZ enriched")
+    #   elif(label.find("_qV")!=-1):addInfo.AddText("qW+qZ")
+    #   addInfo.AddText("Low-purity")
+    # else:
+    #   if label.find("old")!=-1:
+    #     addInfo.AddText("VV category")
+    #     addInfo.AddText("HP+LP")
+    #   elif (label.find("new")!=-1) and label.find("qW")!=-1 or label.find("qZ")!=-1:
+    #     addInfo.AddText("qW+qZ")
+    #     addInfo.AddText("HP+LP")
         
-      elif label.find("new_combined")!=-1:
-        addInfo.AddText("WW+WZ+ZZ")
-        addInfo.AddText("HP+LP")
+    #   elif label.find("new_combined")!=-1:
+    #     addInfo.AddText("WW+WZ+ZZ")
+    #     addInfo.AddText("HP+LP")
       
-    #addInfo.Draw()
-    #addNarrow.Draw()
+    addInfo.Draw()
+    # addNarrow.Draw()
     c1.Update() 
     frame = c1.GetFrame()
     frame.Draw()
-    # CMS_lumi.CMS_lumi(c1, iPeriod, iPos)
+    CMS_lumi.CMS_lumi(c1, iPeriod, iPos)
     c1.cd()
     c1.Update()
     c1.RedrawAxis()
@@ -655,10 +667,10 @@ if __name__ == '__main__':
                failed.append(postfix+"CMS_jj_0_"+chan+"_"+str(coupling)+variable+"_13TeV_"+region+"_asymptoticCLs_new.root")
         print '('+str(len(failed))+'/'+str(len(couplings))+') failed!!'
         if region == "_invMass":
-            Plot(combinedplots,chan+"_"+region+"_new_combined", obs=False,CompareLimits=False,plotExpLimitRatio="")  
+            Plot(combinedplots,chan+"_"+region+variable+"_new_combined", obs=False,CompareLimits=False,plotExpLimitRatio="")  
             gSystem.ProcessEvents()
         else:
-            Plot(combinedplots,chan+"_"+region+"_new_combined", obs=True,CompareLimits=False,plotExpLimitRatio="")  
+            Plot(combinedplots,chan+"_"+region+variable+"_new_combined", obs=True,CompareLimits=False,plotExpLimitRatio="")  
             gSystem.ProcessEvents()
         print 'Failed (N=%i):'%len(failed)
             
