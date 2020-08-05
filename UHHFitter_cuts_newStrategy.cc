@@ -417,6 +417,57 @@ void SigModelFitaQGC(RooWorkspace* w, Float_t mass, TString signalname, std::vec
 
   // Fit Signal -> EFT par4 / SM -> par3
   if(TString(signalname).Contains("_mjj")){
+
+  for (int c = ncat_min; c < ncat_min+ncat; ++c) {
+    
+    sigToFit[c]  = (RooDataSet*) w->data(TString::Format("SigWeight_%s",cat_names.at(c).c_str()));
+    std::cout << sigToFit[c] << std::endl;
+
+    RooRealVar* m0         = new RooRealVar( "jj_"+signalname+TString::Format("_sig_m0_%s"    ,cat_names.at(c).c_str()), "jj_"+signalname+TString::Format("_sig_m0_%s"    ,cat_names.at(c).c_str()), MASS, 0.8*MASS, 1.2*MASS);
+    RooRealVar* gm0        = new RooRealVar( "jj_"+signalname+TString::Format("_sig_gm0_%s"   ,cat_names.at(c).c_str()), "jj_"+signalname+TString::Format("_sig_gm0_%s"   ,cat_names.at(c).c_str()), MASS, 0.8*MASS, 1.2*MASS);
+    RooRealVar* sigma      = new RooRealVar( "jj_"+signalname+TString::Format("_sig_sigma_%s" ,cat_names.at(c).c_str()), "jj_"+signalname+TString::Format("_sig_sigma_%s" ,cat_names.at(c).c_str()), MASS*0.05 ,20., 700.);
+    RooRealVar* scalesigma = new RooRealVar( "jj_"+signalname+TString::Format("_scalesigma_%s",cat_names.at(c).c_str()), "jj_"+signalname+TString::Format("_scalesigma_%s",cat_names.at(c).c_str()), 2., 1.2, 10.);
+    RooRealVar* alpha      = new RooRealVar( "jj_"+signalname+TString::Format("_sig_alpha_%s" ,cat_names.at(c).c_str()), "jj_"+signalname+TString::Format("_sig_alpha_%s" ,cat_names.at(c).c_str()), 1.85288, 0.0, 20);
+    RooRealVar* sig_n      = new RooRealVar( "jj_"+signalname+TString::Format("_sig_n_%s"     ,cat_names.at(c).c_str()), "jj_"+signalname+TString::Format("_sig_n_%s"     ,cat_names.at(c).c_str()), 129.697, 0., 300);
+    RooRealVar* frac       = new RooRealVar( "jj_"+signalname+TString::Format("_sig_frac_%s"  ,cat_names.at(c).c_str()), "jj_"+signalname+TString::Format("_sig_frac_%s"  ,cat_names.at(c).c_str()), 0.0, 0.0, 0.35);
+    
+    RooFormulaVar* gsigma  = new RooFormulaVar( "jj_"+signalname+TString::Format("_sig_gsigma_%s",cat_names.at(c).c_str()),"jj_"+signalname+TString::Format("_sig_gsigma_%s",cat_names.at(c).c_str()),"@0*@1", RooArgList( *sigma, *scalesigma ));
+    
+    RooGaussian* gaus   = new RooGaussian( "jj_GaussSig"+signalname+TString::Format("_%s",cat_names.at(c).c_str()), "jj_GaussSig"+signalname+TString::Format("_%s",cat_names.at(c).c_str()), *w->var("mgg13TeV") ,*m0,*gsigma);
+    RooCBShape* cb      = new RooCBShape ( "jj_CBSig"   +signalname+TString::Format("_%s",cat_names.at(c).c_str()), "jj_CBSig"   +signalname+TString::Format("_%s",cat_names.at(c).c_str()), *w->var("mgg13TeV") ,*m0 , *sigma, *alpha, *sig_n);
+    RooAddPdf* sigmodel = new RooAddPdf  ( signalname+"_jj"+TString::Format("_%s",cat_names.at(c).c_str())        , signalname+"_jj"+TString::Format("_%s",cat_names.at(c).c_str())        , RooArgList( *gaus, *cb ), RooArgList(*frac),1);
+    
+    jjSig[c] = (RooAbsPdf*)  sigmodel;
+    jjSig[c] -> fitTo(*sigToFit[c],Range(mass*0.8,mass*1.2),SumW2Error(kTRUE),PrintEvalErrors(-1),Save(kTRUE));
+      
+    cout<<"FIT PASSED! Start importing and fixing parameters" <<endl;
+    w->import(*sigmodel  );
+    w->import(*gaus      );
+    w->import(*cb        );
+    w->import(*m0        );
+    w->import(*gm0       );
+    w->import(*sigma     );
+    w->import(*scalesigma);
+    w->import(*gsigma    );
+    w->import(*alpha     );
+    w->import(*sig_n     );
+    w->import(*frac      );
+      
+    ((RooRealVar*) w->var("jj_"+signalname+TString::Format("_sig_m0_%s"    ,cat_names.at(c).c_str())))->setConstant(true);
+    ((RooRealVar*) w->var("jj_"+signalname+TString::Format("_sig_gm0_%s"   ,cat_names.at(c).c_str())))->setConstant(true);
+    ((RooRealVar*) w->var("jj_"+signalname+TString::Format("_sig_sigma_%s" ,cat_names.at(c).c_str())))->setConstant(true);
+    ((RooRealVar*) w->var("jj_"+signalname+TString::Format("_scalesigma_%s",cat_names.at(c).c_str())))->setConstant(true);
+    ((RooRealVar*) w->var("jj_"+signalname+TString::Format("_sig_alpha_%s" ,cat_names.at(c).c_str())))->setConstant(true);
+    ((RooRealVar*) w->var("jj_"+signalname+TString::Format("_sig_n_%s"     ,cat_names.at(c).c_str())))->setConstant(true);
+    // ((RooRealVar*) w->var("jj_"+signalname+TString::Format("_sig_gsigma_%s",cat_names.at(c).c_str())))->setConstant(true);
+    ((RooRealVar*) w->var("jj_"+signalname+TString::Format("_sig_frac_%s"  ,cat_names.at(c).c_str())))->setConstant(true);
+    
+  }
+}
+
+
+    //old bzw my version
+    /*
     for(int c = ncat_min; c < ncat_min+ncat; ++c){
     
     sigToFit[c] = (RooDataSet*) w->data(TString::Format("SigWeight_%s",cat_names.at(c).c_str()));
@@ -462,6 +513,7 @@ void SigModelFitaQGC(RooWorkspace* w, Float_t mass, TString signalname, std::vec
     ((RooRealVar*) w->var(TString::Format("sig_fit_slope3_%s" ,cat_names.at(c).c_str())))->setConstant(true);
    // ((RooRealVar*) w->var(TString::Format("sig_fit_slope4_%s" ,cat_names.at(c).c_str())))->setConstant(true)  
     }
+    */
   }else if(TString(signalname).Contains("_pT")){
     for(int c = ncat_min; c < ncat_min+ncat; ++c){
     
@@ -1694,10 +1746,10 @@ void UHHFitter_cuts_newStrategy(string cut, double mass, int signalsamples=0, in
   filePOSTfix=postfix;
   if(TString(cut).Contains("_mjj")){    
     MMIN = 1050.;
-    MMAX = 10050.;
+    MMAX = 10000.;
     }else if(TString(cut).Contains("_pT")){
     MMIN = 600.;
-    MMAX = 5600.;    
+    MMAX = 4000.;    
   }
   runfits(cut, mass, signalsamples, channel,altfunc);
   std::cout << signalsamples << std::endl;
