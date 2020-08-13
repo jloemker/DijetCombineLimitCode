@@ -1746,10 +1746,10 @@ void UHHFitter_cuts_newStrategy(string cut, double mass, int signalsamples=0, in
   filePOSTfix=postfix;
   if(TString(cut).Contains("_mjj")){    
     MMIN = 1050.;
-    MMAX = 10000.;
+    MMAX = 6000.;
     }else if(TString(cut).Contains("_pT")){
     MMIN = 600.;
-    MMAX = 4000.;    
+    MMAX = 2900.;    
   }
   runfits(cut, mass, signalsamples, channel,altfunc);
   std::cout << signalsamples << std::endl;
